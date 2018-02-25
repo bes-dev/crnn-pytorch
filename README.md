@@ -10,6 +10,20 @@ Usage
 python ./train.py --help
 `
 
+Demo
+----
+
+1. Train simple OCR using TestDataset data generator.
+Training for ~60-100 epochs.
+```
+python train.pt --test-init True --test-epoch 10 --output-dir <path_to_folder_for snapshot>
+```
+
+2. Run test for trained model with visualization mode.
+```
+python test.py --snapshot <path_to_folder_for snapshot>/crnn_resnet18_10_best --visualize True
+```
+
 Dependence
 ----------
 * pytorch 0.3.0 +
