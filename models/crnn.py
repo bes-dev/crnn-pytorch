@@ -3,16 +3,21 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 import torchvision.models as models
+import string
+import numpy as np
 
 class CRNN(nn.Module):
     def __init__(self,
-                 num_classes=10,
+                 abc=string.digits,
                  backend='resnet18',
                  rnn_hidden_size=128,
                  rnn_num_layers=2,
                  rnn_dropout=False,
                  seq_proj=[0, 0]):
         super().__init__()
+
+        self.abc = abc
+        self.num_classes = len(self.abc)
 
         self.feature_extractor = getattr(models, backend)(pretrained=True)
         self.cnn = nn.Sequential(
@@ -36,7 +41,7 @@ class CRNN(nn.Module):
                           rnn_hidden_size, rnn_num_layers,
                           batch_first=False,
                           dropout=rnn_dropout, bidirectional=True)
-        self.linear = nn.Linear(rnn_hidden_size * 2, num_classes + 1)
+        self.linear = nn.Linear(rnn_hidden_size * 2, self.num_classes + 1)
         self.softmax = nn.Softmax(dim=2)
 
     def forward(self, x):
@@ -47,6 +52,7 @@ class CRNN(nn.Module):
         seq = self.linear(seq)
         if not self.training:
             seq = self.softmax(seq)
+            self.decode(seq)
         return seq
 
     def init_hidden(self, batch_size, gpu=False):
@@ -71,3 +77,26 @@ class CRNN(nn.Module):
 
     def get_block_size(self, layer):
         return layer[-1][-1].bn2.weight.size()[0]
+
+    def pred_to_string(self, pred):
+        seq = []
+        for i in range(pred.shape[0]):
+            label = np.argmax(pred[i])
+            seq.append(label - 1)
+        out = []
+        for i in range(len(seq)):
+            if len(out) == 0:
+                if seq[i] != -1:
+                    out.append(seq[i])
+            else:
+                if seq[i] != -1 and seq[i] != seq[i - 1]:
+                    out.append(seq[i])
+        out = ''.join(self.abc[i] for i in out)
+        return out
+
+    def decode(self, pred):
+        pred = pred.permute(1, 0, 2).cpu().data.numpy()
+        seq = []
+        for i in range(pred.shape[0]):
+            seq.append(self.pred_to_string(pred[i]))
+        return seq

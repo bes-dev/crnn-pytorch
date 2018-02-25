@@ -1,5 +1,6 @@
 import os
 import click
+import string
 import numpy as np
 from tqdm import tqdm
 from models.model_loader import load_model
@@ -19,7 +20,7 @@ from warpctc_pytorch import CTCLoss
 from test import test
 
 @click.command()
-@click.option('--num-classes', type=int, default=10, help='Number of classes')
+@click.option('--abc', type=str, default=string.digits+string.ascii_uppercase, help='Alphabet')
 @click.option('--seq-proj', type=str, default="10x20", help='Projection of sequence')
 @click.option('--backend', type=str, default="resnet18", help='Backend network')
 @click.option('--snapshot', type=str, default=None, help='Pre-trained weights')
@@ -32,18 +33,18 @@ from test import test
 @click.option('--test-epoch', type=int, default=None, help='Test epoch')
 @click.option('--test-init', type=bool, default=False, help='Test initialization')
 @click.option('--gpu', type=str, default='0', help='List of GPUs for parallel training, e.g. 0,1,2,3')
-def main(num_classes, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_iter, batch_size, output_dir, test_epoch, test_init, gpu):
+def main(abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_iter, batch_size, output_dir, test_epoch, test_init, gpu):
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     cuda = True if gpu is not '' else False
 
     seq_proj = [int(x) for x in seq_proj.split('x')]
-    net = load_model(num_classes, seq_proj, backend, snapshot, cuda)
+    net = load_model(abc, seq_proj, backend, snapshot, cuda)
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
         Resize(size=(input_size[0], input_size[1])),
         ToTensor()
     ])
-    data = TestDataset(transform=transform)
+    data = TestDataset(transform=transform, abc=abc)
     optimizer = optim.Adam(net.parameters(), lr = base_lr, weight_decay=0.0001)
     lr_scheduler = StepLR(optimizer, step_size=step_size, max_iter=max_iter)
     loss_function = CTCLoss()
@@ -59,7 +60,7 @@ def main(num_classes, seq_proj, backend, snapshot, input_size, base_lr, step_siz
             net = net.train()
             if acc > acc_best:
                 if output_dir is not None:
-                    torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(num_classes) + "_best"))
+                    torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(abc) + "_best"))
                 acc_best = acc
             print("acc: {}\tacc_best: {}".format(acc, acc_best))
 
@@ -86,7 +87,7 @@ def main(num_classes, seq_proj, backend, snapshot, input_size, base_lr, step_siz
             lr_scheduler.step()
             iter_count += 1
         if output_dir is not None:
-            torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(num_classes) + "_last"))
+            torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(abc) + "_last"))
         epoch_count += 1
 
     return
