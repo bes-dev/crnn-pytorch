@@ -2,13 +2,17 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+import string
+import random
 
 class TestDataset(Dataset):
     def __init__(self,
                  epoch_len = 10000,
                  seq_len = 8,
-                 transform=None):
+                 transform=None,
+                 abc=string.digits):
         super().__init__()
+        self.abc = abc
         self.epoch_len = epoch_len
         self.seq_len = seq_len
         self.transform = transform
@@ -16,14 +20,18 @@ class TestDataset(Dataset):
     def __len__(self):
         return self.epoch_len
 
+    def generate_string(self):
+        return ''.join(random.choice(self.abc) for _ in range(self.seq_len))
+
     def get_sample(self):
         h, w = 64, int(self.seq_len * 64 * 2.5)
         pw = int(w / self.seq_len)
         seq = []
         img = np.zeros((h, w), dtype=np.uint8)
-        for i in range(self.seq_len):
-            c = np.random.randint(0, 10)
-            seq.append(c + 1)
+        text = self.generate_string()
+        for i in range(len(text)):
+            c = text[i]
+            seq.append(self.abc.find(c) + 1)
             hs, ws = 32, 32
             symb = np.zeros((hs, ws), dtype=np.uint8)
             font = cv2.FONT_HERSHEY_SIMPLEX
