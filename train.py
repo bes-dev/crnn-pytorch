@@ -58,7 +58,8 @@ def main(num_classes, seq_proj, backend, snapshot, input_size, base_lr, step_siz
             acc = test(net, data_test, cuda)
             net = net.train()
             if acc > acc_best:
-                torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(num_classes) + "_best"))
+                if output_dir is not None:
+                    torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(num_classes) + "_best"))
                 acc_best = acc
             print("acc: {}\tacc_best: {}".format(acc, acc_best))
 
