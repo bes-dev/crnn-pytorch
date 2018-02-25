@@ -55,7 +55,7 @@ def main(num_classes, seq_proj, backend, snapshot, input_size, base_lr, step_siz
             print("Test phase")
             data_test = TestDataset(transform=Compose([Resize(size=(input_size[0], input_size[1])), ToTensor()]))
             net = net.eval()
-            acc = test(net, data_test, cuda)
+            acc = test(net, data_test, cuda, visualize=False)
             net = net.train()
             if acc > acc_best:
                 if output_dir is not None:
