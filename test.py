@@ -14,7 +14,7 @@ from dataset.data_transform import ToTensor, Resize
 from models.model_loader import load_model
 from torchvision.transforms import Compose
 
-def test(net, data, cuda, visualize):
+def test(net, data, abc, cuda, visualize):
     data_loader = DataLoader(data, batch_size=1, num_workers=1, shuffle=False)
 
     count = 0
@@ -26,7 +26,7 @@ def test(net, data, cuda, visualize):
             imgs = imgs.cuda()
         out = net(imgs, decode=True)[0]
         gt = (sample["seq"][0].numpy() - 1).tolist()
-        gt = ''.join(net.module.abc[i] for i in gt)
+        gt = ''.join(abc[i] for i in gt)
         if out == gt:
             tp += 1
         count += 1
@@ -62,7 +62,7 @@ def main(abc, seq_proj, backend, snapshot, input_size, gpu, visualize):
         ToTensor()
     ])
     data = TestDataset(transform=transform, abc=abc)
-    acc = test(net, data, cuda, visualize)
+    acc = test(net, data, abc, cuda, visualize)
     print("Accuracy: {}".format(acc))
 
 if __name__ == '__main__':
