@@ -44,7 +44,7 @@ class CRNN(nn.Module):
         self.linear = nn.Linear(rnn_hidden_size * 2, self.num_classes + 1)
         self.softmax = nn.Softmax(dim=2)
 
-    def forward(self, x):
+    def forward(self, x, decode=False):
         hidden = self.init_hidden(x.size(0), next(self.parameters()).is_cuda)
         features = self.cnn(x)
         features = self.features_to_sequence(features)
@@ -52,7 +52,8 @@ class CRNN(nn.Module):
         seq = self.linear(seq)
         if not self.training:
             seq = self.softmax(seq)
-            self.decode(seq)
+            if decode:
+                seq = self.decode(seq)
         return seq
 
     def init_hidden(self, batch_size, gpu=False):

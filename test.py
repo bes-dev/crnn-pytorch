@@ -24,8 +24,7 @@ def test(net, data, cuda, visualize):
         imgs = Variable(sample["img"])
         if cuda:
             imgs = imgs.cuda()
-        pred = net(imgs)
-        out = net.module.decode(pred)[0]
+        out = net(imgs, decode=True)[0]
         gt = (sample["seq"][0].numpy() - 1).tolist()
         gt = ''.join(net.module.abc[i] for i in gt)
         if out == gt:
