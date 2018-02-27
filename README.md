@@ -30,17 +30,17 @@ Train on custom dataset
 1. Create dataset
 
 - Structure of dataset:
-`
+```
 <root_dataset_dir>
 ---- data
 -------- <img_filename_0>
 ...
 -------- <img_filename_1>
 ---- desc.json
-`
+```
 
 - Structure of desc.json:
-`
+```
 {
 "abc": <symbols_in_aphabet>,
 "train": [
@@ -66,7 +66,7 @@ Train on custom dataset
 }
 ]
 }
-`
+```
 
 2. Train simple OCR using custom dataset.
 ```
