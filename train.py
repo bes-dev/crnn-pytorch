@@ -7,6 +7,8 @@ from models.model_loader import load_model
 from torchvision.transforms import Compose
 from dataset.data_transform import ToTensor, Resize
 from dataset.test_data import TestDataset
+from dataset.text_data import TextDataset
+from dataset.collate_fn import text_collate
 from lr_policy import StepLR
 
 import torch
@@ -20,6 +22,7 @@ from warpctc_pytorch import CTCLoss
 from test import test
 
 @click.command()
+@click.option('--data-path', type=str, default=None, help='Path to dataset')
 @click.option('--abc', type=str, default=string.digits+string.ascii_uppercase, help='Alphabet')
 @click.option('--seq-proj', type=str, default="10x20", help='Projection of sequence')
 @click.option('--backend', type=str, default="resnet18", help='Backend network')
@@ -33,18 +36,20 @@ from test import test
 @click.option('--test-epoch', type=int, default=None, help='Test epoch')
 @click.option('--test-init', type=bool, default=False, help='Test initialization')
 @click.option('--gpu', type=str, default='0', help='List of GPUs for parallel training, e.g. 0,1,2,3')
-def main(abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_iter, batch_size, output_dir, test_epoch, test_init, gpu):
+def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_iter, batch_size, output_dir, test_epoch, test_init, gpu):
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     cuda = True if gpu is not '' else False
 
-    seq_proj = [int(x) for x in seq_proj.split('x')]
-    net = load_model(abc, seq_proj, backend, snapshot, cuda)
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
-        Resize(size=(input_size[0], input_size[1])),
-        ToTensor()
+        Resize(size=(input_size[0], input_size[1]))
     ])
-    data = TestDataset(transform=transform, abc=abc)
+    if data_path is not None:
+        data = TextDataset(data_path=data_path, mode="train", transform=transform)
+    else:
+        data = TestDataset(transform=transform, abc=abc)
+    seq_proj = [int(x) for x in seq_proj.split('x')]
+    net = load_model(data.abc, seq_proj, backend, snapshot, cuda)
     optimizer = optim.Adam(net.parameters(), lr = base_lr, weight_decay=0.0001)
     lr_scheduler = StepLR(optimizer, step_size=step_size, max_iter=max_iter)
     loss_function = CTCLoss()
@@ -54,9 +59,12 @@ def main(abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_i
     while True:
         if (test_epoch is not None and epoch_count != 0 and epoch_count % test_epoch == 0) or (test_init and epoch_count == 0):
             print("Test phase")
-            data_test = TestDataset(transform=Compose([Resize(size=(input_size[0], input_size[1])), ToTensor()]))
+            if data_path is not None:
+                data_test = TextDataset(data_path=data_path, mode="test", transform=Compose([Resize(size=(input_size[0], input_size[1]))]))
+            else:
+                data_test = TestDataset(transform=Compose([Resize(size=(input_size[0], input_size[1]))]))
             net = net.eval()
-            acc = test(net, data_test, cuda, visualize=False)
+            acc = test(net, data_test, data_test.abc, cuda, visualize=False)
             net = net.train()
             if acc > acc_best:
                 if output_dir is not None:
@@ -64,7 +72,7 @@ def main(abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_i
                 acc_best = acc
             print("acc: {}\tacc_best: {}".format(acc, acc_best))
 
-        data_loader = DataLoader(data, batch_size=batch_size, num_workers=1, shuffle=True)
+        data_loader = DataLoader(data, batch_size=batch_size, num_workers=1, shuffle=True, collate_fn=text_collate)
         loss_mean = []
         iterator = tqdm(data_loader)
         iter_count = 0
@@ -72,7 +80,7 @@ def main(abc, seq_proj, backend, snapshot, input_size, base_lr, step_size, max_i
             optimizer.zero_grad()
             imgs = Variable(sample["img"])
             labels = Variable(sample["seq"]).view(-1)
-            label_lens = Variable(Tensor([data.seq_len] * batch_size).int())
+            label_lens = Variable(sample["seq_len"].int())
             if cuda:
                 imgs = imgs.cuda()
             preds = net(imgs).cpu()

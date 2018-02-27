@@ -54,10 +54,8 @@ class TestDataset(Dataset):
         return img, seq
 
     def __getitem__(self, idx):
-        sample = {}
         img, seq = self.get_sample()
-        sample["img"] = img
-        sample["seq"] = seq
+        sample = {"img": img, "seq": seq, "seq_len": len(seq)}
         if self.transform:
             sample = self.transform(sample)
         return sample

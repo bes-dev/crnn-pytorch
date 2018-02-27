@@ -10,12 +10,14 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 
 from dataset.test_data import TestDataset
+from dataset.text_data import TextDataset
+from dataset.collate_fn import text_collate
 from dataset.data_transform import ToTensor, Resize
 from models.model_loader import load_model
 from torchvision.transforms import Compose
 
 def test(net, data, abc, cuda, visualize):
-    data_loader = DataLoader(data, batch_size=1, num_workers=1, shuffle=False)
+    data_loader = DataLoader(data, batch_size=1, num_workers=1, shuffle=False, collate_fn=text_collate)
 
     count = 0
     tp = 0
@@ -25,7 +27,7 @@ def test(net, data, abc, cuda, visualize):
         if cuda:
             imgs = imgs.cuda()
         out = net(imgs, decode=True)[0]
-        gt = (sample["seq"][0].numpy() - 1).tolist()
+        gt = (sample["seq"].numpy() - 1).tolist()
         gt = ''.join(abc[i] for i in gt)
         if out == gt:
             tp += 1
@@ -43,6 +45,7 @@ def test(net, data, abc, cuda, visualize):
     return acc
 
 @click.command()
+@click.option('--data-path', type=str, default=None, help='Path to dataset')
 @click.option('--abc', type=str, default=string.digits+string.ascii_uppercase, help='Alphabet')
 @click.option('--seq-proj', type=str, default="10x20", help='Projection of sequence')
 @click.option('--backend', type=str, default="resnet18", help='Backend network')
@@ -50,7 +53,7 @@ def test(net, data, abc, cuda, visualize):
 @click.option('--input-size', type=str, default="320x32", help='Input size')
 @click.option('--gpu', type=str, default='0', help='List of GPUs for parallel training, e.g. 0,1,2,3')
 @click.option('--visualize', type=bool, default=False, help='Visualize output')
-def main(abc, seq_proj, backend, snapshot, input_size, gpu, visualize):
+def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize):
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     cuda = True if gpu is not '' else False
 
@@ -58,10 +61,12 @@ def main(abc, seq_proj, backend, snapshot, input_size, gpu, visualize):
     net = load_model(abc, seq_proj, backend, snapshot, cuda).eval()
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
-        Resize(size=(input_size[0], input_size[1])),
-        ToTensor()
+        Resize(size=(input_size[0], input_size[1]))
     ])
-    data = TestDataset(transform=transform, abc=abc)
+    if data_path is not None:
+        data = TextDataset(data_path=data_path, mode="test", transform=transform)
+    else:
+        data = TestDataset(transform=transform, abc=abc)
     acc = test(net, data, abc, cuda, visualize)
     print("Accuracy: {}".format(acc))
 
