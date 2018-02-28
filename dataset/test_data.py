@@ -61,7 +61,7 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         img, seq = self.get_sample()
-        sample = {"img": img, "seq": seq, "seq_len": len(seq)}
+        sample = {"img": img, "seq": seq, "seq_len": len(seq), "aug": self.mode == "train"}
         if self.transform:
             sample = self.transform(sample)
         return sample

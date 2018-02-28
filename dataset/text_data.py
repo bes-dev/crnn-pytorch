@@ -29,7 +29,7 @@ class TextDataset(Dataset):
 
         img = cv2.imread(os.path.join(self.data_path, "data", name))
         seq = self.text_to_seq(text)
-        sample = {"img": img, "seq": seq, "seq_len": len(seq)}
+        sample = {"img": img, "seq": seq, "seq_len": len(seq), "aug": self.mode == "train"}
         if self.transform:
             sample = self.transform(sample)
         return sample
