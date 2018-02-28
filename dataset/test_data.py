@@ -20,6 +20,12 @@ class TestDataset(Dataset):
     def __len__(self):
         return self.epoch_len
 
+    def get_abc(self):
+        return self.abc
+
+    def set_mode(self):
+        return
+
     def generate_string(self):
         return ''.join(random.choice(self.abc) for _ in range(self.seq_len))
 

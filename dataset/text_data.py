@@ -3,32 +3,39 @@ import json
 import os
 import cv2
 
-def text_to_seq(text, abc):
-    seq = []
-    for c in text:
-        seq.append(abc.find(c) + 1)
-    return seq
-
 class TextDataset(Dataset):
     def __init__(self, data_path, mode="train", transform=None):
         super().__init__()
         self.data_path = data_path
-        config = json.load(open(os.path.join(data_path, "desc.json")))
-        self.names = config[mode]
-        self.abc = config["abc"]
+        self.mode = mode
+        self.config = json.load(open(os.path.join(data_path, "desc.json")))
         self.transform = transform
-        self.seq_len = 5
 
     def abc_len(self):
-        return len(self.abc)
+        return len(self.config["abc"])
+
+    def get_abc(self):
+        return self.config["abc"]
+
+    def set_mode(self, mode):
+        self.mode = mode
 
     def __len__(self):
-        return len(self.names)
+        return len(self.config[self.mode])
 
     def __getitem__(self, idx):
-        img = cv2.imread(os.path.join(self.data_path, "data", self.names[idx]["name"]))
-        seq = text_to_seq(self.names[idx]["text"], self.abc)
+        name = self.config[self.mode][idx]["name"]
+        text = self.config[self.mode][idx]["text"]
+
+        img = cv2.imread(os.path.join(self.data_path, "data", name))
+        seq = self.text_to_seq(text)
         sample = {"img": img, "seq": seq, "seq_len": len(seq)}
         if self.transform:
             sample = self.transform(sample)
         return sample
+
+    def text_to_seq(self, text):
+        seq = []
+        for c in text:
+            seq.append(self.config["abc"].find(c) + 1)
+        return seq

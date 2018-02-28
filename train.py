@@ -49,7 +49,7 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
     else:
         data = TestDataset(transform=transform, abc=abc)
     seq_proj = [int(x) for x in seq_proj.split('x')]
-    net = load_model(data.abc, seq_proj, backend, snapshot, cuda)
+    net = load_model(data.get_abc(), seq_proj, backend, snapshot, cuda)
     optimizer = optim.Adam(net.parameters(), lr = base_lr, weight_decay=0.0001)
     lr_scheduler = StepLR(optimizer, step_size=step_size, max_iter=max_iter)
     loss_function = CTCLoss()
@@ -59,16 +59,14 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
     while True:
         if (test_epoch is not None and epoch_count != 0 and epoch_count % test_epoch == 0) or (test_init and epoch_count == 0):
             print("Test phase")
-            if data_path is not None:
-                data_test = TextDataset(data_path=data_path, mode="test", transform=Compose([Resize(size=(input_size[0], input_size[1]))]))
-            else:
-                data_test = TestDataset(transform=Compose([Resize(size=(input_size[0], input_size[1]))]))
+            data.set_mode("test")
             net = net.eval()
-            acc = test(net, data_test, data_test.abc, cuda, visualize=False)
+            acc = test(net, data, data.get_abc(), cuda, visualize=False)
             net = net.train()
+            data.set_mode("train")
             if acc > acc_best:
                 if output_dir is not None:
-                    torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(abc) + "_best"))
+                    torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(data.get_abc()) + "_best"))
                 acc_best = acc
             print("acc: {}\tacc_best: {}".format(acc, acc_best))
 
@@ -95,7 +93,7 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
             lr_scheduler.step()
             iter_count += 1
         if output_dir is not None:
-            torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(abc) + "_last"))
+            torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(data.get_abc()) + "_last"))
         epoch_count += 1
 
     return
