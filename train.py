@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from models.model_loader import load_model
 from torchvision.transforms import Compose
-from dataset.data_transform import ToTensor, Resize
+from dataset.data_transform import Resize, Rotation, Translation, Scale
 from dataset.test_data import TestDataset
 from dataset.text_data import TextDataset
 from dataset.collate_fn import text_collate
@@ -29,7 +29,7 @@ from test import test
 @click.option('--snapshot', type=str, default=None, help='Pre-trained weights')
 @click.option('--input-size', type=str, default="320x32", help='Input size')
 @click.option('--base-lr', type=float, default=1e-3, help='Base learning rate')
-@click.option('--step-size', type=int, default=2000, help='Step size')
+@click.option('--step-size', type=int, default=500, help='Step size')
 @click.option('--max-iter', type=int, default=6000, help='Max iterations')
 @click.option('--batch-size', type=int, default=256, help='Batch size')
 @click.option('--output-dir', type=str, default=None, help='Path for snapshot')
@@ -42,6 +42,9 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
 
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
+        Rotation(),
+        Translation(),
+        Scale(),
         Resize(size=(input_size[0], input_size[1]))
     ])
     if data_path is not None:

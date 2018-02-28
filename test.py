@@ -57,8 +57,6 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
     cuda = True if gpu is not '' else False
 
-    seq_proj = [int(x) for x in seq_proj.split('x')]
-    net = load_model(abc, seq_proj, backend, snapshot, cuda).eval()
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
         Resize(size=(input_size[0], input_size[1]))
@@ -67,7 +65,9 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
         data = TextDataset(data_path=data_path, mode="test", transform=transform)
     else:
         data = TestDataset(transform=transform, abc=abc)
-    acc = test(net, data, abc, cuda, visualize)
+    seq_proj = [int(x) for x in seq_proj.split('x')]
+    net = load_model(data.get_abc(), seq_proj, backend, snapshot, cuda).eval()
+    acc = test(net, data, data.get_abc(), cuda, visualize)
     print("Accuracy: {}".format(acc))
 
 if __name__ == '__main__':
