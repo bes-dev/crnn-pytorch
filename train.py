@@ -43,8 +43,8 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
         Rotation(),
-        Translation(),
-        Scale(),
+        # Translation(),
+        # Scale(),
         Resize(size=(input_size[0], input_size[1]))
     ])
     if data_path is not None:

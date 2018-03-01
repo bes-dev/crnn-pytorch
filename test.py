@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from dataset.test_data import TestDataset
 from dataset.text_data import TextDataset
 from dataset.collate_fn import text_collate
-from dataset.data_transform import ToTensor, Resize
+from dataset.data_transform import Resize, Rotation, Translation, Scale
 from models.model_loader import load_model
 from torchvision.transforms import Compose
 
@@ -59,10 +59,11 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
 
     input_size = [int(x) for x in input_size.split('x')]
     transform = Compose([
+        Rotation(),
         Resize(size=(input_size[0], input_size[1]))
     ])
     if data_path is not None:
-        data = TextDataset(data_path=data_path, mode="test", transform=transform)
+        data = TextDataset(data_path=data_path, mode="train", transform=transform)
     else:
         data = TestDataset(transform=transform, abc=abc)
     seq_proj = [int(x) for x in seq_proj.split('x')]

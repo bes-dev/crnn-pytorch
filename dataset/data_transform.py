@@ -43,7 +43,7 @@ class Translation(object):
         if np.random.uniform(0.0, 1.0) < self.p or not sample["aug"]:
             return sample
         h,w,_ = sample["img"].shape
-        trans_range = [w, h]
+        trans_range = [w / 10, h / 10]
         tr_x = trans_range[0]*np.random.uniform()-trans_range[0]/2
         tr_y = trans_range[1]*np.random.uniform()-trans_range[1]/2
         transform = np.float32([[1,0, tr_x], [0,1, tr_y]])
@@ -52,7 +52,7 @@ class Translation(object):
 
 
 class Scale(object):
-    def __init__(self, scale=[0.5, 2.0], fill_value=0, p = 0.5):
+    def __init__(self, scale=[0.5, 1.2], fill_value=0, p = 0.5):
         self.scale = scale
         self.fill_value = fill_value
         self.p = p

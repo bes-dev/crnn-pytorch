@@ -21,13 +21,16 @@ class TextDataset(Dataset):
         self.mode = mode
 
     def __len__(self):
+        if self.mode == "test":
+            return int(len(self.config[self.mode]) * 0.01)
         return len(self.config[self.mode])
 
     def __getitem__(self, idx):
         name = self.config[self.mode][idx]["name"]
         text = self.config[self.mode][idx]["text"]
 
-        img = cv2.imread(os.path.join(self.data_path, "data", name))
+        # img = cv2.imread(os.path.join(self.data_path, "data", name))
+        img = cv2.imread(os.path.join(self.data_path, name))
         seq = self.text_to_seq(text)
         sample = {"img": img, "seq": seq, "seq_len": len(seq), "aug": self.mode == "train"}
         if self.transform:
