@@ -78,6 +78,9 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
         iterator = tqdm(data_loader)
         iter_count = 0
         for sample in iterator:
+            # for multi-gpu support
+            if sample["img"].size(0) % len(gpu.split(',')) != 0:
+                continue
             optimizer.zero_grad()
             imgs = Variable(sample["img"])
             labels = Variable(sample["seq"]).view(-1)
