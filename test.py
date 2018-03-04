@@ -33,6 +33,7 @@ def test(net, data, abc, cuda, visualize, batch_size=256):
         gt = (sample["seq"].numpy() - 1).tolist()
         lens = sample["seq_len"].numpy().tolist()
         pos = 0
+        key = ''
         for i in range(len(out)):
             gts = ''.join(abc[c] for c in gt[pos:pos+lens[i]])
             pos += lens[i]
