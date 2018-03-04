@@ -16,8 +16,8 @@ from dataset.data_transform import Resize, Rotation, Translation, Scale
 from models.model_loader import load_model
 from torchvision.transforms import Compose
 
-def test(net, data, abc, cuda, visualize):
-    data_loader = DataLoader(data, batch_size=1, num_workers=1, shuffle=False, collate_fn=text_collate)
+def test(net, data, abc, cuda, visualize, batch_size=256):
+    data_loader = DataLoader(data, batch_size=batch_size, num_workers=4, shuffle=False, collate_fn=text_collate)
 
     count = 0
     tp = 0
@@ -26,20 +26,27 @@ def test(net, data, abc, cuda, visualize):
         imgs = Variable(sample["img"])
         if cuda:
             imgs = imgs.cuda()
-        out = net(imgs, decode=True)[0]
+        out = net(imgs, decode=True)
         gt = (sample["seq"].numpy() - 1).tolist()
-        gt = ''.join(abc[i] for i in gt)
-        if out == gt:
-            tp += 1
-        count += 1
-        if visualize:
-            status = "pred: {}; gt: {}".format(out, gt)
-            iterator.set_description(status)
-            img = imgs[0].permute(1, 2, 0).cpu().data.numpy().astype(np.uint8)
-            cv2.imshow("img", img)
-            key = chr(cv2.waitKey() & 255)
-            if key == 'q':
-                break
+        lens = sample["seq_len"].numpy().tolist()
+        pos = 0
+        for i in range(len(out)):
+            gts = ''.join(abc[c] for c in gt[pos:pos+lens[i]])
+            pos += lens[i]
+            tp += (gts == out[i])
+            count += 1
+            if visualize:
+                status = "pred: {}; gt: {}".format(out[i], gts)
+                iterator.set_description(status)
+                img = imgs[i].permute(1, 2, 0).cpu().data.numpy().astype(np.uint8)
+                cv2.imshow("img", img)
+                key = chr(cv2.waitKey() & 255)
+                if key == 'q':
+                    break
+        if key == 'q':
+            break
+        if not visualize:
+            iterator.set_description("acc: {0:.4f}".format(tp / count))
 
     acc = tp / count
     return acc
@@ -63,7 +70,7 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
         Resize(size=(input_size[0], input_size[1]))
     ])
     if data_path is not None:
-        data = TextDataset(data_path=data_path, mode="train", transform=transform)
+        data = TextDataset(data_path=data_path, mode="test", transform=transform)
     else:
         data = TestDataset(transform=transform, abc=abc)
     seq_proj = [int(x) for x in seq_proj.split('x')]
