@@ -16,11 +16,14 @@ from dataset.data_transform import Resize, Rotation, Translation, Scale
 from models.model_loader import load_model
 from torchvision.transforms import Compose
 
+import editdistance
+
 def test(net, data, abc, cuda, visualize, batch_size=256):
     data_loader = DataLoader(data, batch_size=batch_size, num_workers=4, shuffle=False, collate_fn=text_collate)
 
     count = 0
     tp = 0
+    avg_ed = 0
     iterator = tqdm(data_loader)
     for sample in iterator:
         imgs = Variable(sample["img"])
@@ -33,7 +36,10 @@ def test(net, data, abc, cuda, visualize, batch_size=256):
         for i in range(len(out)):
             gts = ''.join(abc[c] for c in gt[pos:pos+lens[i]])
             pos += lens[i]
-            tp += (gts == out[i])
+            if gts == out[i]:
+                tp += 1
+            else:
+                avg_ed += editdistance.eval(out[i], gts)
             count += 1
             if visualize:
                 status = "pred: {}; gt: {}".format(out[i], gts)
@@ -46,10 +52,11 @@ def test(net, data, abc, cuda, visualize, batch_size=256):
         if key == 'q':
             break
         if not visualize:
-            iterator.set_description("acc: {0:.4f}".format(tp / count))
+            iterator.set_description("acc: {0:.4f}; avg_ed: {0:.4f}".format(tp / count, avg_ed / count))
 
     acc = tp / count
-    return acc
+    avg_ed = avg_ed / count
+    return acc, avg_ed
 
 @click.command()
 @click.option('--data-path', type=str, default=None, help='Path to dataset')
@@ -75,8 +82,9 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, gpu, visualize
         data = TestDataset(transform=transform, abc=abc)
     seq_proj = [int(x) for x in seq_proj.split('x')]
     net = load_model(data.get_abc(), seq_proj, backend, snapshot, cuda).eval()
-    acc = test(net, data, data.get_abc(), cuda, visualize)
+    acc, avg_ed = test(net, data, data.get_abc(), cuda, visualize)
     print("Accuracy: {}".format(acc))
+    print("Edit distance: {}".format(avg_ed))
 
 if __name__ == '__main__':
     main()

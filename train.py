@@ -64,14 +64,14 @@ def main(data_path, abc, seq_proj, backend, snapshot, input_size, base_lr, step_
             print("Test phase")
             data.set_mode("test")
             net = net.eval()
-            acc = test(net, data, data.get_abc(), cuda, visualize=False)
+            acc, avg_ed = test(net, data, data.get_abc(), cuda, visualize=False)
             net = net.train()
             data.set_mode("train")
             if acc > acc_best:
                 if output_dir is not None:
                     torch.save(net.state_dict(), os.path.join(output_dir, "crnn_" + backend + "_" + str(data.get_abc()) + "_best"))
                 acc_best = acc
-            print("acc: {}\tacc_best: {}".format(acc, acc_best))
+            print("acc: {}\tacc_best: {}; avg_ed: {}".format(acc, acc_best, avg_ed))
 
         data_loader = DataLoader(data, batch_size=batch_size, num_workers=1, shuffle=True, collate_fn=text_collate)
         loss_mean = []
