@@ -23,7 +23,7 @@ class TestDataset(Dataset):
     def get_abc(self):
         return self.abc
 
-    def set_mode(self):
+    def set_mode(self, mode='train'):
         return
 
     def generate_string(self):
