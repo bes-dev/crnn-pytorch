@@ -12,7 +12,7 @@ class CRNN(nn.Module):
                  backend='resnet18',
                  rnn_hidden_size=128,
                  rnn_num_layers=2,
-                 rnn_dropout=False,
+                 rnn_dropout=0,
                  seq_proj=[0, 0]):
         super().__init__()
 
