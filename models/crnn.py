@@ -14,7 +14,7 @@ class CRNN(nn.Module):
                  rnn_num_layers=2,
                  rnn_dropout=0,
                  seq_proj=[0, 0]):
-        super().__init__()
+        super(CRNN, self).__init__()
 
         self.abc = abc
         self.num_classes = len(self.abc)
